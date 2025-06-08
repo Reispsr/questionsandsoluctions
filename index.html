@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show do Milhão</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset básico e configurações de viewport */
+        html, body {
+            height: 100%; /* Garante que HTML e Body ocupem 100% da viewport */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita rolagem no body, o container do jogo controla isso */
+            box-sizing: border-box; /* Garante que padding e border sejam incluídos na largura/altura */
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #28a745; /* Green background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .game-container {
+            width: 100vw; /* Ocupa 100% da largura da viewport */
+            height: 100vh; /* Ocupa 100% da altura da viewport */
+            background-color: #3f009e; /* Dark purple/blue para a tela do jogo */
+            border-radius: 0; /* Padrão para mobile, ajustado para desktop em media query */
+            box-shadow: none; /* Padrão para mobile, ajustado para desktop em media query */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px; /* Padding padrão do container, ajustado em media query */
+            box-sizing: border-box;
+            position: relative; /* Para posicionamento absoluto das telas */
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%; /* Ocupa toda a altura do game-container */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Default para start/end screen (centraliza verticalmente) */
+            align-items: center;
+            padding: 15px; /* Padding padrão das telas internas, ajustado em media query */
+            box-sizing: border-box;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out;
+            background-color: #3f009e; /* Garante que as telas cubram umas às outras */
+            z-index: 1; /* Z-index padrão */
+            overflow-y: auto; /* Permite rolagem individual da tela se o conteúdo exceder */
+            -webkit-overflow-scrolling: touch; /* Suaviza a rolagem em dispositivos iOS */
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 2; /* Tela ativa no topo */
+        }
+
+        /* Start Screen */
+        #start-screen h1 {
+            font-size: 3em; /* Tamanho maior para desktop */
+            text-align: center;
+            color: #ffe033; /* Yellow */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            line-height: 1.2;
+            margin-bottom: 50px;
+            border-bottom: 3px solid #ffe033;
+            border-top: 3px solid #ffe033;
+            padding: 15px 0;
+        }
+
+        #start-screen button, #end-screen button {
+            background-color: #ffe033; /* Yellow button */
+            color: #3f009e; /* Dark purple text */
+            border: none;
+            padding: 18px 35px; /* Padding maior para desktop */
+            font-size: 1.4em; /* Fonte maior para desktop */
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #start-screen button:hover, #end-screen button:hover {
+            background-color: #ffc900;
+            transform: translateY(-2px);
+        }
+
+        /* Game Screen */
+        #game-screen {
+            justify-content: space-between; /* Distribui os elementos para um layout mais espaçoso no desktop */
+            align-items: stretch; /* Estica filhos para preencher a largura */
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #5d17bb; /* Slightly lighter purple for header */
+            padding: 12px 20px; /* Padding maior para desktop */
+            border-radius: 10px;
+            margin-bottom: 25px; /* Margem maior para desktop */
+            font-size: 1.2em; /* Fonte maior para desktop */
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0; /* Não permite que o header encolha */
+        }
+
+        #current-prize {
+            color: #ffe033;
+        }
+
+        .question-area {
+            background-color: #5d17bb;
+            padding: 25px; /* Padding maior para desktop */
+            border-radius: 10px;
+            margin-bottom: 25px; /* Margem maior para desktop */
+            flex-grow: 1; /* Permite que ocupe o espaço disponível */
+            flex-shrink: 1; /* Permite que encolha se necessário */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 150px; /* Garante um tamanho mínimo para a área da pergunta (desktop) */
+        }
+
+        #question-text {
+            font-size: 1.6em; /* Fonte maior para desktop */
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Espaçamento maior para desktop */
+            margin-bottom: 25px; /* Margem maior para desktop */
+            flex-shrink: 0; /* Não permite que os botões de opção encolham */
+        }
+
+        .option-btn {
+            background-color: #5d17bb;
+            color: #fff;
+            border: 2px solid #a06dfb;
+            padding: 15px 25px; /* Padding maior para desktop */
+            text-align: left;
+            font-size: 1.1em; /* Fonte maior para desktop */
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            position: relative; /* Para texto de probabilidade */
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #7b4acb;
+            border-color: #ffe033;
+        }
+
+        .option-btn.correct {
+            background-color: #28a745; /* Green */
+            border-color: #1a7e34;
+        }
+
+        .option-btn.wrong {
+            background-color: #dc3545; /* Red */
+            border-color: #a02834;
+        }
+
+        .option-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .probability-text {
+            position: absolute;
+            right: 20px; /* Posição ajustada */
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1em; /* Fonte ajustada */
+            font-weight: 700;
+            color: #ffe033;
+        }
+
+        .lifelines {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px; /* Espaçamento maior para desktop */
+            margin-bottom: 0; /* Garante que não tenha margem empurrando para fora */
+            flex-shrink: 0; /* Não permite que os lifelines encolham */
+        }
+
+        .lifeline-btn {
+            background-color: #a06dfb;
+            color: #3f009e;
+            border: none;
+            padding: 12px 18px; /* Padding maior para desktop */
+            font-size: 1em; /* Fonte maior para desktop */
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            flex: 1; /* Distribui o espaço uniformemente */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .lifeline-btn:hover:not(:disabled) {
+            background-color: #7b4acb;
+            transform: translateY(-2px);
+        }
+
+        .lifeline-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #7d59b2;
+            color: #ccc;
+        }
+
+        /* End Screen */
+        #end-screen h2 {
+            font-size: 2.5em; /* Fonte maior para desktop */
+            color: #ffe033;
+            margin-bottom: 25px;
+        }
+
+        #end-screen p {
+            font-size: 1.8em; /* Fonte maior para desktop */
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        /* Responsive adjustments for screens smaller than 1024px (e.g., tablets in landscape, smaller desktops) */
+        @media (max-width: 1024px) {
+            #start-screen h1 {
+                font-size: 2.5em;
+                margin-bottom: 35px;
+            }
+            #start-screen button {
+                padding: 15px 30px;
+                font-size: 1.2em;
+            }
+            .header {
+                font-size: 1.1em;
+                padding: 10px 15px;
+                margin-bottom: 20px;
+            }
+            .question-area {
+                min-height: 120px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            #question-text {
+                font-size: 1.4em;
+            }
+            .options-container {
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .option-btn {
+                font-size: 1em;
+                padding: 12px 20px;
+            }
+            .probability-text {
+                font-size: 0.9em;
+            }
+            .lifelines {
+                gap: 10px;
+            }
+            .lifeline-btn {
+                font-size: 0.9em;
+                padding: 10px 15px;
+            }
+            #end-screen h2 {
+                font-size: 2.2em;
+                margin-bottom: 20px;
+            }
+            #end-screen p {
+                font-size: 1.6em;
+                margin-bottom: 40px;
+            }
+        }
+
+        /* Responsive adjustments for mobile devices (screens smaller than 600px) */
+        @media (max-width: 600px) {
+            .game-container {
+                border-radius: 0; /* Remove border-radius para ocupar a tela cheia no celular */
+                box-shadow: none; /* Remove sombra para uma aparência mais limpa em tela cheia */
+                padding: 8px; /* **Padding ainda mais ajustado para mobile** */
+            }
+            
+            .screen {
+                padding: 8px; /* **Padding das telas internas ajustado** */
+                justify-content: flex-start; /* Alinha os itens ao topo no mobile */
+            }
+
+            #start-screen h1 {
+                font-size: 1.5em; /* Fonte menor */
+                margin-bottom: 15px; /* Margem menor */
+                padding: 5px 0; /* Padding menor */
+            }
+            #start-screen button, #end-screen button {
+                padding: 10px 20px; /* Padding menor */
+                font-size: 1em; /* Fonte menor */
+            }
+
+            .header {
+                margin-bottom: 6px; /* Margem menor */
+                padding: 4px 6px; /* Padding menor */
+                font-size: 0.8em; /* Fonte menor */
+            }
+
+            .question-area {
+                min-height: 0; /* **CRÍTICO: Remove a altura mínima, deixará a altura da pergunta ser ditada pelo seu conteúdo** */
+                padding: 5px; /* **Padding bem reduzido** */
+                margin-bottom: 6px; /* Margem reduzida */
+            }
+            #question-text {
+                font-size: 0.75em; /* **Fonte da pergunta bem menor** */
+            }
+            .options-container {
+                gap: 4px; /* **Espaçamento entre opções muito reduzido** */
+                margin-bottom: 6px; /* Margem reduzida */
+            }
+            .option-btn {
+                font-size: 0.7em; /* **Fonte dos botões de opção menor** */
+                padding: 6px 8px; /* **Padding dos botões de opção reduzido** */
+            }
+            .probability-text {
+                font-size: 0.7em; /* Fonte ajustada para probabilidade */
+                right: 8px; /* Posição ajustada */
+            }
+            .lifelines {
+                gap: 3px; /* **Espaçamento entre lifelines muito reduzido** */
+                margin-bottom: 0; /* Garante que não haja margem na parte inferior */
+            }
+            .lifeline-btn {
+                font-size: 0.6em; /* **Fonte dos botões de lifeline menor** */
+                padding: 4px 6px; /* **Padding dos botões de lifeline reduzido** */
+            }
+            #end-screen h2 {
+                font-size: 1.4em;
+                margin-bottom: 10px;
+            }
+            #end-screen p {
+                font-size: 0.9em;
+                margin-bottom: 15px;
+            }
+        }
+
+        /* Ajustes adicionais para telas muito pequenas/curtas (como em-app browsers ou dispositivos compactos) */
+        @media (max-height: 650px) and (max-width: 600px) {
+            .game-container, .screen {
+                padding: 4px; /* Reduz padding geral para o mínimo */
+            }
+            .header {
+                font-size: 0.7em;
+                padding: 3px 5px;
+                margin-bottom: 4px;
+            }
+            .question-area {
+                padding: 4px;
+                margin-bottom: 4px;
+            }
+            #question-text {
+                font-size: 0.68em;
+            }
+            .options-container {
+                gap: 2px;
+                margin-bottom: 4px;
+            }
+            .option-btn {
+                font-size: 0.65em;
+                padding: 5px 6px;
+            }
+            .lifelines {
+                gap: 2px;
+            }
+            .lifeline-btn {
+                font-size: 0.55em;
+                padding: 3px 5px;
+            }
+            #start-screen h1 {
+                font-size: 1.4em;
+                margin-bottom: 10px;
+            }
+            #start-screen button, #end-screen button {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+            #end-screen h2 {
+                font-size: 1.2em;
+                margin-bottom: 8px;
+            }
+            #end-screen p {
+                font-size: 0.8em;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>JOGANDO<br>SHOW DO<br>MILHÃO</h1>
+            <button id="start-game-btn">INICIAR JOGO</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="header">
+                <span id="current-prize">R$ 0</span>
+                <span id="question-progress">0/17</span>
+            </div>
+
+            <div class="question-area">
+                <p id="question-text">Carregando pergunta...</p>
+            </div>
+
+            <div class="options-container">
+                <button class="option-btn" data-option="A">A: Opção A</button>
+                <button class="option-btn" data-option="B">B: Opção B</button>
+                <button class="option-btn" data-option="C">C: Opção C</button>
+                <button class="option-btn" data-option="D">D: Opção D</button>
+            </div>
+
+            <div class="lifelines">
+                <button id="skip-btn" class="lifeline-btn" title="Pular pergunta (3x disponíveis)">Pular (<span id="skip-count">3</span>)</button>
+                <button id="cards-btn" class="lifeline-btn" title="Remover opções erradas (1x disponível)">Cartas</button>
+                <button id="probability-btn" class="lifeline-btn" title="Mostrar probabilidade de acerto (1x disponível)">Probabilidade</button>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen">
+            <h2 id="end-message"></h2>
+            <p id="final-prize"></p>
+            <button id="restart-game-btn">JOGAR NOVAMENTE</button>
+        </div>
+    </div>
+
+    <script>
+        // NOTE: The API_KEY is for illustrative purposes for fetching single questions.
+        // For the 50 questions, they are hardcoded for direct implementation in one block.
+        // In a real application, you'd generate these questions via Groq (or similar)
+        // and store them in a persistent way (e.g., database, JSON file) to be consumed by the game.
+        const API_KEY = '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'; 
+        const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Not directly used for the 50 questions pool
+
+        const PRIZE_AMOUNTS = [
+            1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 60000,
+            80000, 100000, 150000, 200000, 300000, 500000, 1000000
+        ];
+
+        // Mapeamento de níveis do jogo para chaves de dificuldade
+        // 5 perguntas fáceis, 4 médias, 4 difíceis, 3 muito difíceis, 1 ultimate
+        const DIFFICULTY_MAP = [
+            'easy', 'easy', 'easy', 'easy', 'easy', // R$1k - R$5k (5 questions)
+            'medium', 'medium', 'medium', 'medium', // R$10k - R$40k (4 questions)
+            'hard', 'hard', 'hard', 'hard', // R$60k - R$150k (4 questions)
+            'very-hard', 'very-hard', 'very-hard', // R$200k - R$500k (3 questions)
+            'ultimate' // R$1M (1 question)
+        ];
+
+        // 50 PERGUNTAS PRÉ-DEFINIDAS, CATEGORIZADAS POR DIFICULDADE
+        // (Simulando a geração da IA e garantindo a diversidade e dificuldade progressiva)
+        const ALL_QUESTIONS_BY_DIFFICULTY = {
+            'easy': [
+                {
+                    question: 'Qual é o nome do animal que é o melhor amigo do homem?',
+                    options: {'A': 'Gato', 'B': 'Pássaro', 'C': 'Cachorro', 'D': 'Peixe'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Quantos dias tem uma semana?',
+                    options: {'A': '5', 'B': '7', 'C': '10', 'D': '3'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Qual a cor principal do Smurf?',
+                    options: {'A': 'Verde', 'B': 'Amarelo', 'C': 'Vermelho', 'D': 'Azul'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Onde o sol nasce?',
+                    options: {'A': 'Oeste', 'B': 'Norte', 'C': 'Sul', 'D': 'Leste'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual fruta é conhecida por ser a "maçã do amor"?',
+                    options: {'A': 'Uva', 'B': 'Morango', 'C': 'Cereja', 'D': 'Maçã caramelizada'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual é o contrário de "quente"?',
+                    options: {'A': 'Morno', 'B': 'Gelado', 'C': 'Tépido', 'D': 'Frio'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual objeto usamos para escrever no papel?',
+                    options: {'A': 'Tesoura', 'B': 'Lápis', 'C': 'Martelo', 'D': 'Chave'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Que animal voa e tem penas?',
+                    options: {'A': 'Peixe', 'B': 'Cachorro', 'C': 'Pássaro', 'D': 'Cobra'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual forma geométrica tem quatro lados iguais?',
+                    options: {'A': 'Círculo', 'B': 'Triângulo', 'C': 'Quadrado', 'D': 'Retângulo'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é o sentido que usamos para ouvir música?',
+                    options: {'A': 'Visão', 'B': 'Olfato', 'C': 'Audição', 'D': 'Tato'},
+                    correctAnswer: 'C'
+                },
+                 {
+                    question: 'Qual o nome do inventor da lâmpada?',
+                    options: {'A': 'Albert Einstein', 'B': 'Isaac Newton', 'C': 'Thomas Edison', 'D': 'Nikola Tesla'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual o maior órgão do corpo humano?',
+                    options: {'A': 'Cérebro', 'B': 'Coração', 'C': 'Pele', 'D': 'Pulmão'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual o metal mais abundante na crosta terrestre?',
+                    options: {'A': 'Ferro', 'B': 'Cobre', 'C': 'Alumínio', 'D': 'Ouro'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual o nome do famoso detetive de Baker Street?',
+                    options: {'A': 'Hercule Poirot', 'B': 'Miss Marple', 'C': 'Sherlock Holmes', 'D': 'Philip Marlowe'},
+                    correctAnswer: 'C'
+                }
+            ],
+            'medium': [
+                {
+                    question: 'Em que país se localiza a Grande Muralha?',
+                    options: {'A': 'Japão', 'B': 'Índia', 'C': 'China', 'D': 'Coréia do Sul'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Quem pintou a "Mona Lisa"?',
+                    options: {'A': 'Vincent van Gogh', 'B': 'Pablo Picasso', 'C': 'Leonardo da Vinci', 'D': 'Michelangelo'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é o oceano mais extenso do mundo?',
+                    options: {'A': 'Atlântico', 'B': 'Índico', 'C': 'Ártico', 'D': 'Pacífico'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual gás as plantas absorvem para fazer fotossíntese?',
+                    options: {'A': 'Oxigênio', 'B': 'Nitrogênio', 'C': 'Gás carbônico', 'D': 'Hidrogênio'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual esporte é conhecido como "o esporte rei"?',
+                    options: {'A': 'Basquete', 'B': 'Vôlei', 'C': 'Futebol', 'D': 'Tênis'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é o único mamífero capaz de voar?',
+                    options: {'A': 'Esquilo voador', 'B': 'Morcego', 'C': 'Pterossauro', 'D': 'Golfinho'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Em que ano o homem pisou na Lua pela primeira vez?',
+                    options: {'A': '1965', 'B': '1969', 'C': '1971', 'D': '1975'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Qual é o elemento químico com o símbolo "Fe"?',
+                    options: {'A': 'Flúor', 'B': 'Fósforo', 'C': 'Ferro', 'D': 'Fermio'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Quem escreveu "Dom Quixote"?',
+                    options: {'A': 'William Shakespeare', 'B': 'Miguel de Cervantes', 'C': 'Gabriel García Márquez', 'D': 'Machado de Assis'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Qual foi o último país a abolir a escravidão nas Américas?',
+                    options: {'A': 'Estados Unidos', 'B': 'Cuba', 'C': 'Brasil', 'D': 'Porto Rico'},
+                    correctAnswer: 'C'
+                }
+            ],
+            'hard': [
+                {
+                    question: 'Qual das seguintes obras é de autoria de Machado de Assis?',
+                    options: {'A': 'O Cortiço', 'B': 'Vidas Secas', 'C': 'Memórias Póstumas de Brás Cubas', 'D': 'Capitães da Areia'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual era o nome da moeda utilizada no Brasil antes do Real?',
+                    options: {'A': 'Cruzado', 'B': 'Cruzeiro', 'C': 'Cruzado Novo', 'D': 'Ambas as opções A, B e C estão corretas.'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual país tem o maior número de pirâmides no mundo?',
+                    options: {'A': 'Egito', 'B': 'Sudão', 'C': 'México', 'D': 'China'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Quem foi o primeiro presidente do Brasil?',
+                    options: {'A': 'Getúlio Vargas', 'B': 'Marechal Deodoro da Fonseca', 'C': 'Floriano Peixoto', 'D': 'Prudente de Morais'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Qual é o principal componente do gás natural?',
+                    options: {'A': 'Propano', 'B': 'Butano', 'C': 'Metano', 'D': 'Etano'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Em que cidade o Cristo Redentor está localizado?',
+                    options: {'A': 'São Paulo', 'B': 'Salvador', 'C': 'Belo Horizonte', 'D': 'Rio de Janeiro'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual filósofo é o autor da obra "O Príncipe"?',
+                    options: {'A': 'Platão', 'B': 'Aristóteles', 'C': 'Nicolau Maquiavel', 'D': 'Thomas Hobbes'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual o nome da capital do Canadá?',
+                    options: {'A': 'Toronto', 'B': 'Vancouver', 'C': 'Montreal', 'D': 'Ottawa'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Qual das seguintes cidades foi capital do Brasil antes de Brasília?',
+                    options: {'A': 'São Paulo', 'B': 'Rio de Janeiro', 'C': 'Salvador', 'D': 'B e C estão corretas'},
+                    correctAnswer: 'D'
+                },
+                {
+                    question: 'Em que ano a Segunda Guerra Mundial terminou?',
+                    options: {'A': '1942', 'B': '1945', 'C': '1948', 'D': '1950'},
+                    correctAnswer: 'B'
+                }
+            ],
+            'very-hard': [
+                {
+                    question: 'Qual é o nome do rio mais longo do mundo?',
+                    options: {'A': 'Amazonas', 'B': 'Nilo', 'C': 'Yangtzé', 'D': 'Mississippi'},
+                    correctAnswer: 'A'
+                },
+                {
+                    question: 'Qual o nome da teoria da relatividade foi proposta por?',
+                    options: {'A': 'Isaac Newton', 'B': 'Stephen Hawking', 'C': 'Albert Einstein', 'D': 'Galileu Galilei'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é o ponto mais profundo dos oceanos?',
+                    options: {'A': 'Fossa das Marianas', 'B': 'Fossa de Porto Rico', 'C': 'Fossa de Sunda', 'D': 'Fossa do Peru-Chile'},
+                    correctAnswer: 'A'
+                },
+                {
+                    question: 'Quem foi o arquiteto responsável pelo projeto de Brasília?',
+                    options: {'A': 'Oscar Niemeyer', 'B': 'Lucio Costa', 'C': 'Roberto Burle Marx', 'D': 'Affonso Eduardo Reidy'},
+                    correctAnswer: 'A'
+                },
+                {
+                    question: 'Qual o nome do processo pelo qual as plantas produzem seu próprio alimento?',
+                    options: {'A': 'Respiração', 'B': 'Transpiração', 'C': 'Fotossíntese', 'D': 'Decomposição'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é o nome da galáxia em que o nosso Sistema Solar está localizado?',
+                    options: {'A': 'Andrômeda', 'B': 'Triângulo', 'C': 'Via Láctea', 'D': 'Messier 82'},
+                    correctAnswer: 'C'
+                },
+                 {
+                    question: 'Qual é o número atômico do Ouro?',
+                    options: {'A': '77', 'B': '78', 'C': '79', 'D': '80'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Quem formulou a Teoria da Evolução por Seleção Natural?',
+                    options: {'A': 'Gregor Mendel', 'B': 'Louis Pasteur', 'C': 'Charles Darwin', 'D': 'Alfred Russel Wallace'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual instrumento musical é conhecido como "rei dos instrumentos"?',
+                    options: {'A': 'Piano', 'B': 'Violino', 'C': 'Órgão', 'D': 'Guitarra'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual a montanha mais alta da África?',
+                    options: {'A': 'Monte Everest', 'B': 'Monte Kilimanjaro', 'C': 'Monte McKinley', 'D': 'Monte Fuji'},
+                    correctAnswer: 'B'
+                }
+            ],
+            'ultimate': [
+                {
+                    question: 'Qual dessas linguagens de programação foi criada por Guido van Rossum?',
+                    options: {'A': 'Java', 'B': 'C++', 'C': 'Python', 'D': 'JavaScript'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual o nome do processo de transformação de gás em líquido?',
+                    options: {'A': 'Ebulição', 'B': 'Solidificação', 'C': 'Condensação', 'D': 'Sublimação'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Qual é a capital da Austrália?',
+                    options: {'A': 'Sydney', 'B': 'Melbourne', 'C': 'Canberra', 'D': 'Brisbane'},
+                    correctAnswer: 'C'
+                },
+                {
+                    question: 'Quem foi a primeira mulher a ganhar um Prêmio Nobel?',
+                    options: {'A': 'Marie Curie', 'B': 'Irène Joliot-Curie', 'C': 'Dorothy Hodgkin', 'D': 'Bertha von Suttner'},
+                    correctAnswer: 'A'
+                },
+                {
+                    question: 'Qual é o único continente que fica em todos os quatro hemisférios da Terra?',
+                    options: {'A': 'Ásia', 'B': 'África', 'C': 'América do Sul', 'D': 'Europa'},
+                    correctAnswer: 'B'
+                },
+                {
+                    question: 'Qual teoria descreve a origem do universo a partir de uma singularidade?',
+                    options: {'A': 'Teoria do Estado Estacionário', 'B': 'Teoria do Big Bang', 'C': 'Teoria do Universo Oscilante', 'D': 'Teoria do Multiverso'},
+                    correctAnswer: 'B'
+                }
+            ]
+        };
+
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+
+        const currentPrizeSpan = document.getElementById('current-prize');
+        const questionProgressSpan = document.getElementById('question-progress');
+        const questionText = document.getElementById('question-text');
+        const optionButtons = document.querySelectorAll('.option-btn');
+        const skipBtn = document.getElementById('skip-btn');
+        const skipCountSpan = document.getElementById('skip-count');
+        const cardsBtn = document.getElementById('cards-btn');
+        const probabilityBtn = document.getElementById('probability-btn');
+        const endMessage = document.getElementById('end-message');
+        const finalPrize = document.getElementById('final-prize');
+
+        // Game State
+        let currentQuestionIndex = 0;
+        let currentPrize = 0; // The prize for the NEXT question to be answered correctly
+        let skipCount = 3;
+        let cardsUsed = false;
+        let probabilityUsed = false;
+        let currentQuestion = null; // Stores the question data for the current round
+
+        // Pools of questions for the *current game*, copied from master pool
+        let currentQuestionPools = {}; 
+
+        const showScreen = (screenToShow) => {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            screenToShow.classList.add('active');
+        };
+
+        const updateUI = () => {
+            currentPrizeSpan.textContent = `R$ ${currentPrize.toLocaleString('pt-BR')}`;
+            questionProgressSpan.textContent = `${currentQuestionIndex + 1}/${PRIZE_AMOUNTS.length}`;
+            skipCountSpan.textContent = skipCount;
+            skipBtn.disabled = skipCount === 0;
+            cardsBtn.disabled = cardsUsed;
+            probabilityBtn.disabled = probabilityUsed;
+
+            optionButtons.forEach(btn => {
+                btn.classList.remove('correct', 'wrong');
+                btn.disabled = false;
+                // Remove existing probability text if any
+                const probText = btn.querySelector('.probability-text');
+                if (probText) {
+                    probText.remove();
+                }
+            });
+        };
+
+        // Initializes the current game's question pools by making a deep copy
+        const initializeQuestionPools = () => {
+            currentQuestionPools = JSON.parse(JSON.stringify(ALL_QUESTIONS_BY_DIFFICULTY));
+        };
+
+        // Selects a question from the appropriate difficulty pool for the current level
+        const getQuestionForLevel = (levelIndex) => {
+            const difficultyKey = DIFFICULTY_MAP[levelIndex];
+            const availableQuestions = currentQuestionPools[difficultyKey];
+
+            if (!availableQuestions || availableQuestions.length === 0) {
+                console.warn(`No more questions in ${difficultyKey} pool for level ${levelIndex}. Attempting to pull from other pools.`);
+                // Fallback: try to find a question from any remaining pool that has questions
+                const allRemainingQuestionsFlat = [];
+                for (const key in currentQuestionPools) {
+                    allRemainingQuestionsFlat.push(...currentQuestionPools[key]);
+                }
+
+                if (allRemainingQuestionsFlat.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * allRemainingQuestionsFlat.length);
+                    const chosenQuestion = allRemainingQuestionsFlat[randomIndex];
+                    // Remove the chosen question from its original pool to ensure uniqueness
+                    for (const key in currentQuestionPools) {
+                        const indexInOriginalPool = currentQuestionPools[key].findIndex(q => q === chosenQuestion);
+                        if (indexInOriginalPool !== -1) {
+                            currentQuestionPools[key].splice(indexInOriginalPool, 1);
+                            break;
+                        }
+                    }
+                    return chosenQuestion;
+                } else {
+                    console.error("No questions left in any pool for this game!");
+                    // This scenario should ideally not happen with a sufficient pool of 50 questions for 17 levels.
+                    return null; // Game cannot continue due to lack of questions
+                }
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+            // Remove the question from the pool so it's not repeated in this game
+            const chosenQuestion = availableQuestions.splice(randomIndex, 1)[0]; 
+            return chosenQuestion;
+        };
+
+        const loadQuestion = () => {
+            if (currentQuestionIndex >= PRIZE_AMOUNTS.length) {
+                endGame(true); // Player won!
+                return;
+            }
+
+            currentQuestion = getQuestionForLevel(currentQuestionIndex);
+            if (!currentQuestion) {
+                // Handle case where no questions are available
+                endGame(false); // End game if no question can be loaded
+                return;
+            }
+
+            updateUI(); // Update UI to reflect current prize and question count
+
+            questionText.textContent = currentQuestion.question;
+            optionButtons.forEach(btn => {
+                const optionKey = btn.dataset.option;
+                btn.textContent = `${optionKey}: ${currentQuestion.options[optionKey]}`;
+                btn.classList.remove('correct', 'wrong'); // Clear previous styling
+                btn.disabled = false; // Ensure buttons are enabled for new question
+                // Remove probability text if it was there
+                const probText = btn.querySelector('.probability-text');
+                if (probText) probText.remove();
+            });
+        };
+
+        const checkAnswer = (selectedOption) => {
+            const selectedBtn = document.querySelector(`.option-btn[data-option="${selectedOption}"]`);
+            disableAllOptions();
+
+            if (selectedOption === currentQuestion.correctAnswer) {
+                selectedBtn.classList.add('correct');
+                currentPrize = PRIZE_AMOUNTS[currentQuestionIndex]; // Set the prize *won*
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    loadQuestion();
+                }, 1500);
+            } else {
+                selectedBtn.classList.add('wrong');
+                // Show the correct answer in green
+                document.querySelector(`.option-btn[data-option="${currentQuestion.correctAnswer}"]`).classList.add('correct');
+                setTimeout(() => {
+                    endGame(false);
+                }, 2000);
+            }
+        };
+
+        const disableAllOptions = () => {
+            optionButtons.forEach(btn => btn.disabled = true);
+        };
+
+        // Lifeline functions
+        const useSkip = () => {
+            if (skipCount > 0) {
+                skipCount--;
+                currentQuestionIndex++; // Move to next question without answering
+                loadQuestion();
+            }
+        };
+
+        const useCards = () => {
+            if (!cardsUsed && currentQuestion) {
+                cardsUsed = true;
+                cardsBtn.disabled = true;
+
+                const wrongOptions = Object.keys(currentQuestion.options).filter(
+                    key => key !== currentQuestion.correctAnswer
+                );
+                
+                // Randomly choose card effect (0, 1, 2, or 3 wrong options removed)
+                const cardsEffect = Math.floor(Math.random() * 4); // 0, 1, 2, or 3
+                const optionsToRemoveCount = Math.min(cardsEffect, wrongOptions.length); // Ensure not to remove more than available wrong options
+
+                // Shuffle wrong options to pick randomly
+                wrongOptions.sort(() => Math.random() - 0.5);
+
+                for (let i = 0; i < optionsToRemoveCount; i++) {
+                    const optionToDisable = wrongOptions[i];
+                    document.querySelector(`.option-btn[data-option="${optionToDisable}"]`).disabled = true;
+                }
+            }
+        };
+
+        const useProbability = () => {
+            if (!probabilityUsed && currentQuestion) {
+                probabilityUsed = true;
+                probabilityBtn.disabled = true;
+
+                const correctKey = currentQuestion.correctAnswer;
+                const optionsKeys = ['A', 'B', 'C', 'D']; // Ensure consistent order
+
+                let correctProb = Math.floor(Math.random() * (75 - 55 + 1)) + 55; // Correct answer gets 55-75%
+                let remainingProb = 100 - correctProb;
+
+                const wrongOptions = optionsKeys.filter(key => key !== correctKey);
+                const wrongProbabilities = Array(wrongOptions.length).fill(0);
+
+                // Distribute remaining probability among wrong answers
+                for (let i = 0; i < remainingProb; i++) {
+                    wrongProbabilities[Math.floor(Math.random() * wrongProbabilities.length)]++;
+                }
+
+                let wrongOptionCounter = 0;
+                optionButtons.forEach(btn => {
+                    const optionKey = btn.dataset.option;
+                    const probText = document.createElement('span');
+                    probText.classList.add('probability-text');
+
+                    if (optionKey === correctKey) {
+                        probText.textContent = `${correctProb}%`;
+                    } else {
+                        probText.textContent = `${wrongProbabilities[wrongOptionCounter++]}%`;
+                    }
+                    btn.appendChild(probText);
+                });
+            }
+        };
+
+        const endGame = (won) => {
+            showScreen(endScreen);
+            if (won) {
+                endMessage.textContent = 'PARABÉNS! VOCÊ GANHOU!';
+                finalPrize.textContent = `Você conquistou R$ ${PRIZE_AMOUNTS[PRIZE_AMOUNTS.length - 1].toLocaleString('pt-BR')}!`;
+            } else {
+                endMessage.textContent = 'QUE PENA! VOCÊ ERROU!';
+                // No Show do Milhão, geralmente você não perde tudo, mas como não foi especificado um prêmio "seguro",
+                // consideraremos que o jogador não levou o prêmio principal.
+                finalPrize.textContent = `Você não levou o prêmio principal. Continue tentando!`;
+            }
+        };
+
+        const resetGame = () => {
+            currentQuestionIndex = 0;
+            currentPrize = 0;
+            skipCount = 3;
+            cardsUsed = false;
+            probabilityUsed = false;
+            currentQuestion = null;
+            initializeQuestionPools(); // Reset question pools for a new game
+            updateUI();
+            showScreen(startScreen); // Go back to start screen for new game
+        };
+
+        // Event Listeners
+        startGameBtn.addEventListener('click', () => {
+            initializeQuestionPools(); // Prepare questions for the new game
+            showScreen(gameScreen);
+            loadQuestion();
+            updateUI(); // Initial UI update for lifelines, etc.
+        });
+
+        restartGameBtn.addEventListener('click', resetGame);
+
+        optionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Only allow answer if button is not disabled (e.g., by 'Cartas' lifeline)
+                if (!button.disabled) {
+                    checkAnswer(button.dataset.option);
+                }
+            });
+        });
+
+        skipBtn.addEventListener('click', useSkip);
+        cardsBtn.addEventListener('click', useCards);
+        probabilityBtn.addEventListener('click', useProbability);
+
+        // Initialize game on load
+        showScreen(startScreen);
+        updateUI(); // Set initial lifeline counts and prize (R$0)
+    </script>
+</body>
+</html>
